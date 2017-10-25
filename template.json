@@ -25,12 +25,12 @@
     },
     "AMIMap": {
       "ap-southeast-1": {
-        "AmznLinux2017090HVM": "ami-0797ea64",
-        "AmznVpcNat201703rc1HVM": "ami-018c3062"
+        "AmznLinux2017090": "ami-0797ea64",
+        "AmznVpcNat201703rc1": "ami-018c3062"
       },
       "eu-west-1": {
-        "AmznLinux2017090HVM": "ami-acd005d5",
-        "AmznVpcNat201703rc1HVM": "..."
+        "AmznLinux2017090": "ami-acd005d5",
+        "AmznVpcNat201703rc1": "ami-076d5d61"
       }
     }
   },
@@ -368,7 +368,7 @@
     "WebServerA": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090"]},
         "InstanceType": "t2.micro",
         "KeyName": {"Ref": "KeyName"},
         "SecurityGroupIds": [
@@ -401,7 +401,7 @@
     "WebServerB": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090"]},
         "InstanceType": "t2.micro",
         "KeyName": {"Ref": "KeyName"},
         "SecurityGroupIds": [
@@ -434,7 +434,7 @@
     "DbServerA": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090"]},
         "InstanceType": "t2.micro",
         "KeyName": {"Ref": "KeyName"},
         "SecurityGroupIds": [
@@ -466,7 +466,7 @@
     "DbServerB": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090"]},
         "InstanceType": "t2.micro",
         "KeyName": {"Ref": "KeyName"},
         "SecurityGroupIds": [
@@ -498,7 +498,7 @@
     "NatInstance": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznVpcNat201703rc1HVM"]},
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznVpcNat201703rc1"]},
         "InstanceType": "t2.micro",
         "KeyName": {"Ref": "KeyName"},
         "SecurityGroupIds": [
@@ -521,5 +521,13 @@
     }
   },
   "Outputs": {
+    "WebServerADnsName": {
+      "Description": "DNS name of webserver A",
+      "Value": {"Fn::GetAtt": ["WebServerA", "PublicDnsName"]}
+    },
+    "WebServerBDnsName": {
+      "Description": "DNS name of webserver B",
+      "Value": {"Fn::GetAtt": ["WebServerB", "PublicDnsName"]}
+    }
   } 
 }

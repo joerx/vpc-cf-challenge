@@ -1,0 +1,525 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "VPC setup with 2 public and 2 private subnets",
+  "Parameters": {
+    "ProjectName": {
+      "Default": "VpcChallenge",
+      "Type": "String",
+      "Description": "Project name, used in tags to name things"
+    },
+    "KeyName": {
+      "Type": "String",
+      "Description": "SSH key for EC2 instances"
+    }
+  },
+  "Mappings": {
+    "ZoneMap": {
+      "ap-southeast-1": {
+        "a": "ap-southeast-1a",
+        "b": "ap-southeast-1b"
+      },
+      "eu-west-1": {
+        "a": "eu-west-1a",
+        "b": "eu-west-1b"
+      }
+    },
+    "AMIMap": {
+      "ap-southeast-1": {
+        "AmznLinux2017090HVM": "ami-0797ea64",
+        "AmznVpcNat201703rc1HVM": "ami-018c3062"
+      },
+      "eu-west-1": {
+        "AmznLinux2017090HVM": "ami-acd005d5",
+        "AmznVpcNat201703rc1HVM": "..."
+      }
+    }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ]
+      }
+    },
+    "PublicSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {"Fn::FindInMap": ["ZoneMap", {"Ref": "AWS::Region"}, "a"]},
+        "CidrBlock": "10.0.1.0/24",
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Pub-A"]]}
+          }
+        ]
+      }
+    },
+    "PublicSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {"Fn::FindInMap": ["ZoneMap", {"Ref": "AWS::Region"}, "b"]},
+        "CidrBlock": "10.0.2.0/24",
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Pub-B"]]}
+          }
+        ]
+      }
+    },
+    "PrivateSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {"Fn::FindInMap": ["ZoneMap", {"Ref": "AWS::Region"}, "a"]},
+        "CidrBlock": "10.0.3.0/24",
+        "MapPublicIpOnLaunch": false,
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Priv-A"]]}
+          }
+        ]
+      }
+    },
+    "PrivateSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {"Fn::FindInMap": ["ZoneMap", {"Ref": "AWS::Region"}, "b"]},
+        "CidrBlock": "10.0.4.0/24",
+        "MapPublicIpOnLaunch": false,
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Priv-B"]]}
+          }
+        ]
+      }
+    },
+    "PublicSubnetARouteTable": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {"Ref": "PublicRouteTable"},
+        "SubnetId": {"Ref": "PublicSubnetA"}
+      }
+    },
+    "PublicSubnetBRouteTable": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {"Ref": "PublicRouteTable"},
+        "SubnetId": {"Ref": "PublicSubnetB"}
+      }
+    },
+    "PrivateSubnetARouteTable": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {"Ref": "PrivateRouteTableA"},
+        "SubnetId": {"Ref": "PrivateSubnetA"}
+      }
+    },
+    "PrivateSubnetBRouteTable": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {"Ref": "PrivateRouteTableB"},
+        "SubnetId": {"Ref": "PrivateSubnetB"}
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ]
+      }
+    },
+    "VPCInternetGatewayAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "InternetGatewayId": {"Ref": "InternetGateway"},
+        "VpcId": {"Ref": "Vpc"}
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Pub"]]}
+          }
+        ]
+      }
+    },
+    "PrivateRouteTableA": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Priv-A"]]}
+          }
+        ]
+      }
+    },
+    "PrivateRouteTableB": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {"Ref": "Vpc"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "Priv-B"]]}
+          }
+        ]
+      }
+    },
+    "InternetGatewayRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {"Ref": "InternetGateway"},
+        "RouteTableId": {"Ref": "PublicRouteTable"}
+      }
+    },
+    "NatGatewayRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {"Ref": "NatGateway"},
+        "RouteTableId": {"Ref": "PrivateRouteTableA"}
+      }
+    },
+    "NatInstanceRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "InstanceId": {"Ref": "NatInstance"},
+        "RouteTableId": {"Ref": "PrivateRouteTableB"}
+      }
+    },
+    "NatEIP": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+    },
+    "NatGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": {
+        "AllocationId": {"Fn::GetAtt": ["NatEIP", "AllocationId"]},
+        "SubnetId": {"Ref": "PublicSubnetA"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ]
+      }
+    },
+    "WebSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Webserver security group",
+        "GroupName": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "WebSG"]]},
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort" : 80,
+            "ToPort" : 80,
+            "IpProtocol" : "tcp"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort" : 443,
+            "ToPort" : 443,
+            "IpProtocol" : "tcp"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort" : 22,
+            "ToPort" : 22,
+            "IpProtocol" : "tcp"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "CidrIp" : "0.0.0.0/0",
+            "FromPort" : -1,
+            "ToPort" : -1,
+            "IpProtocol" : -1
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          },
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "WebSG"]]}
+          }
+        ],
+        "VpcId": {"Ref": "Vpc"}
+      }
+    },
+    "DbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Database server security group",
+        "GroupName": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "DbSG"]]},
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "10.0.0.0/16",
+            "FromPort" : 3306,
+            "ToPort" : 3306,
+            "IpProtocol" : "tcp"
+          },
+          {
+            "CidrIp": "10.0.0.0/16",
+            "FromPort" : 6379,
+            "ToPort" : 6379,
+            "IpProtocol" : "tcp"
+          },
+          {
+            "CidrIp": "10.0.0.0/16",
+            "FromPort" : 22,
+            "ToPort" : 22,
+            "IpProtocol" : "tcp"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "CidrIp" : "0.0.0.0/0",
+            "FromPort" : -1,
+            "ToPort" : -1,
+            "IpProtocol" : -1
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          },
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "DbSG"]]}
+          }
+        ],
+        "VpcId": {"Ref": "Vpc"}
+      }
+    },
+    "DefaultSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Default security group",
+        "GroupName": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "DefaultSG"]]},
+        "Tags": [
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          },
+          {
+            "Key": "Name",
+            "Value": {"Fn::Join": ["", [{"Ref": "ProjectName"}, "DefaultSG"]]}
+          }
+        ],
+        "VpcId": {"Ref": "Vpc"}
+      }
+    },
+    "DefaultSecurityGroupIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties" : {
+        "FromPort": -1,
+        "ToPort": -1,
+        "IpProtocol" : -1,
+        "GroupId": {"Ref": "DefaultSecurityGroup"},
+        "SourceSecurityGroupId": {"Ref": "DefaultSecurityGroup"}
+      }
+    },
+    "DefaultSecurityGroupEgress": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties" : {
+        "FromPort": -1,
+        "ToPort": -1,
+        "IpProtocol" : -1,
+        "GroupId": {"Ref": "DefaultSecurityGroup"},
+        "DestinationSecurityGroupId": {"Ref": "DefaultSecurityGroup"}
+      }
+    },
+    "WebServerA": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "InstanceType": "t2.micro",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroupIds": [
+          {"Ref": "WebSecurityGroup"},
+          {"Ref": "DefaultSecurityGroup"}
+        ],
+        "SourceDestCheck": "true",
+        "SubnetId": {"Ref": "PublicSubnetA"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "WebServerA"
+          },
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {"Fn::Join": ["\n", [
+            "#!/bin/bash -xe",
+            "yum -y install httpd",
+            "chkconfig httpd on",
+            "service httpd start",
+            "echo '<h1>Hello World A!</h1>' > /var/www/html/index.html"
+          ]]}
+        }
+      }
+    },
+    "WebServerB": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "InstanceType": "t2.micro",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroupIds": [
+          {"Ref": "WebSecurityGroup"},
+          {"Ref": "DefaultSecurityGroup"}
+        ],
+        "SourceDestCheck": "true",
+        "SubnetId": {"Ref": "PublicSubnetB"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "WebServerB"
+          },
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {"Fn::Join": ["\n", [
+            "#!/bin/bash -xe",
+            "yum -y install httpd",
+            "chkconfig httpd on",
+            "service httpd start",
+            "echo '<h1>Hello World B!</h1>' > /var/www/html/index.html"
+          ]]}
+        }
+      }
+    },
+    "DbServerA": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "InstanceType": "t2.micro",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroupIds": [
+          {"Ref": "DbSecurityGroup"},
+          {"Ref": "DefaultSecurityGroup"}
+        ],
+        "SourceDestCheck": "true",
+        "SubnetId": {"Ref": "PrivateSubnetA"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "DbServerA"
+          },
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {"Fn::Join": ["\n", [
+            "#!/bin/bash -xe",
+            "yum -y install mysql-server",
+            "chkconfig mysqld on",
+            "service mysqld start"
+          ]]}
+        }
+      }
+    },
+    "DbServerB": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznLinux2017090HVM"]},
+        "InstanceType": "t2.micro",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroupIds": [
+          {"Ref": "DbSecurityGroup"},
+          {"Ref": "DefaultSecurityGroup"}
+        ],
+        "SourceDestCheck": "true",
+        "SubnetId": {"Ref": "PrivateSubnetB"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "DbServerB"
+          },
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {"Fn::Join": ["\n", [
+            "#!/bin/bash -xe",
+            "yum -y install mysql-server",
+            "chkconfig mysqld on",
+            "service mysqld start"
+          ]]}
+        }
+      }
+    },
+    "NatInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {"Fn::FindInMap": ["AMIMap", {"Ref": "AWS::Region"}, "AmznVpcNat201703rc1HVM"]},
+        "InstanceType": "t2.micro",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroupIds": [
+          {"Ref": "WebSecurityGroup"},
+          {"Ref": "DefaultSecurityGroup"}
+        ],
+        "SourceDestCheck": "false",
+        "SubnetId": {"Ref": "PublicSubnetB"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "NatInstance"
+          },
+          {
+            "Key": "ProjectName",
+            "Value": {"Ref": "ProjectName"}
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+  } 
+}
